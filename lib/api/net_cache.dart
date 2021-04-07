@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:imola_demo/api/cache.dart';
 import 'package:sp_util/sp_util.dart';
 
+import 'cache.dart';
+
 class CacheObject {
   CacheObject(this.response)
       : timeStamp = DateTime.now().millisecondsSinceEpoch;
@@ -26,7 +28,10 @@ class NetCacheInterceptor extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    if (!CACHE_ENABLE) return;
+    super.onRequest(options, handler);
+    if (!CACHE_ENABLE) {
+      return;
+    }
 
     // refresh标记是否是刷新缓存
     bool refresh = options.extra["refresh"] == true;
@@ -59,9 +64,64 @@ class NetCacheInterceptor extends Interceptor {
         //若缓存未过期，则返回缓存内容
         if ((DateTime.now().millisecondsSinceEpoch - ob.timeStamp) / 1000 <
             CACHE_MAXAGE) {
+          options = cache[key].response.requestOptions;
+          return;
+        } else {
+          //若已过期则删除缓存，继续向服务器请求
+          cache.remove(key);
+        }
+      }
+
+      // 2 磁盘缓存
+      if (cacheDisk) {
+        var cacheData = SpUtil.getObject(key);
+        if (cacheData != null) {
+          options = Response(
+                  requestOptions: options, statusCode: 200, data: cacheData)
+              .requestOptions;
           return;
         }
       }
+    }
+  }
+
+  @override
+  void onError(DioError err, ErrorInterceptorHandler handler) {
+    super.onError(err, handler);
+    //错误状态下不缓存
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    super.onResponse(response, handler);
+    if (CACHE_ENABLE) {
+      await _saveCache(response);
+    }
+  }
+
+  Future<void> _saveCache(Response object) async {
+    RequestOptions options = object.requestOptions;
+
+    // 只缓存get的请求
+    if (options.extra["noCache"] != true &&
+        options.method.toLowerCase() == "get") {
+      //策略： 内存、磁盘都写缓存
+
+      //缓存key
+      String key = options.extra["cacheKey"] ?? options.uri.toString();
+
+      //磁盘缓存
+      if (options.extra["cacheDisk"] == true) {
+        await SpUtil.putObject(key, object.data);
+      }
+
+      //内存缓存
+      //如果缓存数量超过最大数量限制，则先移除最早的一条记录
+      if (cache.length == CACHE_MAXCOUNT) {
+        cache.remove(cache[cache.keys.first]);
+      }
+
+      cache[key] = CacheObject(object);
     }
   }
 
