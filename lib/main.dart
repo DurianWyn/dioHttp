@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:sp_util/sp_util.dart';
+import 'package:imola_demo/api/api_response.dart';
+import 'package:imola_demo/api/http_utils.dart';
+import 'package:imola_demo/models/user.dart';
+import 'package:imola_demo/view_models/mine_model.dart';
 
-void main() async {
-  await SpUtil.getInstance();
+void main() {
+  //await SpUtil.getInstance();
+  HttpUtils.init(baseUrl: "http://nestciao.ngrok.zc0901.com/api/app/");
   runApp(MyApp());
 }
 
@@ -54,17 +58,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -110,10 +103,17 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: () {
+          getUser();
+        },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+void getUser() async {
+  ApiResponse<User> mine = await MineModel.getUser();
+  print(mine.data.name);
 }

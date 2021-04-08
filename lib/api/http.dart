@@ -27,12 +27,12 @@ class Http {
     if (dio == null) {
       // BaseOptions、Options、RequestOptions 都可以配置参数，优先级别依次递增，且可以根据优先级别覆盖参数
       BaseOptions options = new BaseOptions(
-        connectTimeout: CONNECT_TIMEOUT,
-        //响应流上前后两次接受到数据的间隔，单位为毫秒
-        receiveTimeout: RECEIVE_TIMEOUT,
-        //Http 请求头
-        headers: {},
-      );
+          connectTimeout: CONNECT_TIMEOUT,
+          //响应流上前后两次接受到数据的间隔，单位为毫秒
+          receiveTimeout: RECEIVE_TIMEOUT,
+          //Http 请求头
+          headers: {},
+          contentType: null);
 
       dio = new Dio(options);
 
